@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import bcrypt from "bcryptjs";
+import {hashPassword} from "../helpers/auth-helper.js";
 
 const userSchema = new mongoose.Schema({
     name: {
@@ -29,32 +29,13 @@ const userSchema = new mongoose.Schema({
         minlength: 8,
         select: false,
     },
-    passwordConfirm: {
-        type: String,
-        required: true,
-        validate: {
-            validator: function (value) {
-                return value === this.password
-            },
-            message: "Passwords do not match"
-        },
-    },
 }, {timestamps: true});
 
 userSchema.pre("save", async function() {
     //Only run this fn it password was modified
     if(!this.isModified("password")) return;
 
-    this.password = await bcrypt.hash(this.password, 12);
-
-    this.passwordConfirm = undefined;
+    this.password = await hashPassword(this.password);
 })
-
-userSchema.methods.correctPassword = async function(enteredPassword, userPassword){
-    const password1 = await bcrypt.hash(enteredPassword, 12);
-    const password2 = await bcrypt.hash(userPassword, 12);
-
-    return await bcrypt.compare(enteredPassword, userPassword)
-}
 
 export default mongoose.model("User", userSchema);
